@@ -4,6 +4,7 @@ import type { RuleResult } from '@/lib/types';
 import { extractionSchema, explanationSchema, type Extraction } from './schemas';
 import { SYSTEM_PROMPT } from './prompts';
 import { sanitizeDocument } from '@/lib/security/sanitize';
+import { readBoundedJson } from '@/lib/security/http';
 export interface AIProvider {
   extractMedicalRequest(text: string): Promise<Extraction>;
   extractPolicyInformation(text: string): Promise<Extraction>;
@@ -18,9 +19,9 @@ const endpoints = {
 export function getAIProvider(): AIProvider | null {
   const name = process.env.AI_PROVIDER;
   if (!name || name === 'none') return null;
-  if (!(name in endpoints)) throw new Error('AI_CONFIGURATION');
+  if (!Object.hasOwn(endpoints, name)) throw new Error('AI_CONFIGURATION');
   const provider = name as keyof typeof endpoints;
-  const key = process.env[`${provider.toUpperCase()}_API_KEY`];
+  const key = process.env.AI_API_KEY || process.env[`${provider.toUpperCase()}_API_KEY`];
   const model = process.env.AI_MODEL;
   if (!key || !model) throw new Error('AI_CONFIGURATION');
   async function invoke<T>(schema: z.ZodType<T>, task: string, content: string): Promise<T> {
@@ -42,11 +43,12 @@ export function getAIProvider(): AIProvider | null {
         ],
       }),
       signal: AbortSignal.timeout(25000),
+      redirect: 'error',
     });
     if (!response.ok) throw new Error('AI_UNAVAILABLE');
     const envelope = z
       .object({ choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1) })
-      .parse(await response.json());
+      .parse(await readBoundedJson(response, 128000));
     return schema.parse(JSON.parse(envelope.choices[0].message.content));
   }
   return {

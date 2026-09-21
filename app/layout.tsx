@@ -1,55 +1,30 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { authorize } from '@/lib/security/session';
+import { dataSource } from '@/lib/security/config';
+import { AppShell } from '@/components/app-shell';
+import '@fontsource-variable/inter';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'Surgical Pre-Authorization | Clarity',
-  description: 'Administrative surgical pre-authorization. Fictional hackathon demonstration.',
+  title: 'PreAuth | Surgical Pre-Authorization',
+  description: 'Administrative pre-authorization workspace. Fictional hackathon data only.',
 };
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = 'force-dynamic';
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const requestHeaders = await headers();
+  const demo = dataSource() === 'demo';
+  if (!demo && requestHeaders.get('x-route-path') !== '/login') {
+    try {
+      await authorize(requestHeaders);
+    } catch {
+      redirect('/login');
+    }
+  }
   return (
     <html lang="en">
       <body>
-        <aside className="sidebar">
-          <Link href="/dashboard" className="brand">
-            <span className="brand-icon">+</span> clarity<span className="brand-dot">.</span>
-          </Link>
-          <div className="workspace-label">CARE OPERATIONS</div>
-          <nav>
-            <Link href="/dashboard">
-              ▦ <span>Overview</span>
-            </Link>
-            <Link href="/review">
-              ☷ <span>Human review</span>
-            </Link>
-          </nav>
-          <div className="sidebar-bottom">
-            <span className="online-dot" /> Rules engine online
-            <p>
-              Hackathon workspace
-              <br />
-              Synthetic data only
-            </p>
-            <div className="profile">
-              <span>AC</span>
-              <div>
-                Admin Console<small>Demonstration workspace</small>
-              </div>
-            </div>
-          </div>
-        </aside>
-        <div className="workspace">
-          <header className="topbar">
-            <span>
-              Operations <span className="muted"> / </span> Surgical pre-authorization
-            </span>
-            <span className="demo-tag">DEMO ENVIRONMENT</span>
-          </header>
-          <main>{children}</main>
-          <footer>
-            Administrative decision support only. Pre-approval is not a clinical decision or a
-            guarantee of payment. All demo records are fictional.
-          </footer>
-        </div>
+        <AppShell demo={demo}>{children}</AppShell>
       </body>
     </html>
   );

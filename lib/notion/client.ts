@@ -1,4 +1,5 @@
 import 'server-only';
+import { readBoundedJson } from '@/lib/security/http';
 import { z } from 'zod';
 const richText = z.array(
   z.object({
@@ -28,7 +29,7 @@ export async function notion(path: string, body?: unknown): Promise<unknown> {
     signal: AbortSignal.timeout(20000),
   });
   if (!response.ok) throw new Error('NOTION_UNAVAILABLE');
-  return response.json();
+  return readBoundedJson(response, 4000000);
 }
 export async function dataSource(envName: string): Promise<string> {
   const databaseId = process.env[envName];

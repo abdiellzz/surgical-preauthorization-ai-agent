@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 export function proxy(request: NextRequest) {
-  // Integrated deployments protect both HTML and APIs. The browser uses native Basic Auth.
-  if (process.env.DATA_SOURCE !== 'notion') return NextResponse.next();
-  const password = process.env.ADMIN_PASSWORD;
-  const expected = password ? `Basic ${Buffer.from(`admin:${password}`).toString('base64')}` : '';
-  const provided = request.headers.get('authorization') ?? '';
-  if (
-    !expected ||
-    Buffer.byteLength(provided) !== Buffer.byteLength(expected) ||
-    !timingSafeEqual(Buffer.from(provided), Buffer.from(expected))
-  )
-    return new NextResponse('Authentication required', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="Administrative demo", charset="UTF-8"',
-        'Cache-Control': 'no-store',
-      },
-    });
-  return NextResponse.next();
+  const nonce = randomBytes(16).toString('base64');
+  const dev = process.env.NODE_ENV === 'development';
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
+    "img-src 'self' data:",
+    `connect-src 'self'${dev ? ' ws: wss:' : ''}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+  ].join('; ');
+  const headers = new Headers(request.headers);
+  headers.set('x-nonce', nonce);
+  headers.set('x-route-path', request.nextUrl.pathname);
+  headers.set('Content-Security-Policy', csp);
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.set('Content-Security-Policy', csp);
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
-export const config = {
-  matcher: ['/dashboard/:path*', '/requests/:path*', '/review/:path*', '/api/:path*'],
-};
+export const config = { matcher: ['/((?!_next/static|_next/image|icon.svg|favicon.ico).*)'] };

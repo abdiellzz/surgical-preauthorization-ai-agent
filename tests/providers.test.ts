@@ -17,23 +17,21 @@ describe('Configured provider adapters', () => {
       vi.stubEnv('AI_PROVIDER', name);
       vi.stubEnv('AI_MODEL', 'test-model');
       vi.stubEnv(`${name.toUpperCase()}_API_KEY`, 'fictional-test-key');
-      const fetchMock = vi
-        .fn()
-        .mockResolvedValue(
-          Response.json({
-            choices: [
-              {
-                message: {
-                  content: JSON.stringify({
-                    facts: [],
-                    ambiguous: true,
-                    concerns: ['Missing procedure code'],
-                  }),
-                },
+      const fetchMock = vi.fn().mockResolvedValue(
+        Response.json({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  facts: [],
+                  ambiguous: true,
+                  concerns: ['Missing procedure code'],
+                }),
               },
-            ],
-          }),
-        );
+            },
+          ],
+        }),
+      );
       vi.stubGlobal('fetch', fetchMock);
       const result = await getAIProvider()!.extractMedicalRequest('Fictional report');
       expect(result.ambiguous).toBe(true);

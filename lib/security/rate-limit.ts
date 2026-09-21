@@ -1,5 +1,5 @@
 const windows = new Map<string, { count: number; expires: number }>();
-export function allowRequest(key: string, now = Date.now()): boolean {
+export function allowRequest(key: string, now = Date.now(), maximum = 10): boolean {
   for (const [id, value] of windows) if (value.expires <= now) windows.delete(id);
   let entry = windows.get(key);
   if (!entry) {
@@ -7,5 +7,5 @@ export function allowRequest(key: string, now = Date.now()): boolean {
     entry = { count: 0, expires: now + 60000 };
     windows.set(key, entry);
   }
-  return ++entry.count <= 30;
+  return ++entry.count <= maximum;
 }

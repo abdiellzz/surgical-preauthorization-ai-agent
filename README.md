@@ -1,5 +1,9 @@
 # Surgical Pre-Authorization AI Agent
 
+The current interface is the PreAuth operations workspace: a compact enterprise dashboard with a charcoal navigation rail, Inter typography, semantic status badges, review queue, audit logs, integrations, settings, responsive tables, and accessible loading/error states.
+
+Security details, deployment requirements, and known limitations are documented in [SECURITY.md](./SECURITY.md).
+
 A functional administrative pre-authorization prototype, presented as **Clarity**. Built for a hackathon with exclusively fictional records.
 
 ## Problem

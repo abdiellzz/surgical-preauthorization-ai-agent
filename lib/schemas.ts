@@ -53,3 +53,53 @@ export const policySchema = z.object({
 export const analyzeSchema = z
   .object({ requestId: z.string().regex(/^REQ-[A-Za-z0-9-]{1,60}$/) })
   .strict();
+export const authorizationResultSchema = z.object({
+  requestId: z.string().regex(/^REQ-[A-Za-z0-9-]{1,60}$/),
+  decision: z.enum([
+    'PRE_APPROVED',
+    'DOCUMENTS_REQUIRED',
+    'HUMAN_REVIEW_REQUIRED',
+    'NOT_COVERED',
+    'WAITING_PERIOD_NOT_COMPLETED',
+  ]),
+  confidence: z.number().min(0).max(1),
+  coverage: z.object({
+    covered: z.boolean(),
+    percentage: z.number().min(0).max(100).nullable(),
+    deductible: z.number().nonnegative().nullable(),
+  }),
+  waitingPeriod: z.object({
+    required: z.number().nonnegative().nullable(),
+    elapsed: z.number().nullable(),
+    remaining: z.number().nonnegative().nullable(),
+  }),
+  documents: z.array(documentSchema).max(100),
+  missingDocuments: z.array(text).max(100),
+  reason: z.string().max(10000),
+  requiresHumanReview: z.boolean(),
+  sources: z.array(text).max(20),
+  createdAt: z.iso.datetime(),
+  decisionFactors: z
+    .array(
+      z.object({
+        passed: z.boolean(),
+        code: text,
+        reason: z.string().max(10000),
+        evidence: z.unknown().optional(),
+      }),
+    )
+    .max(20),
+  processingTimeMs: z.number().nonnegative(),
+  timeline: z
+    .array(
+      z.object({
+        event: text,
+        createdAt: z.iso.datetime(),
+        details: z.record(
+          z.string().max(100),
+          z.union([z.string().max(1000), z.number(), z.boolean()]),
+        ),
+      }),
+    )
+    .max(500),
+});

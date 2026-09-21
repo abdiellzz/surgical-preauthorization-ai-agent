@@ -12,7 +12,7 @@ beforeEach(() => {
 const request = (body: unknown) =>
   new Request('http://localhost/api/analyze', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', origin: 'http://localhost' },
     body: JSON.stringify(body),
   });
 describe('Real analysis API pipeline', () => {
@@ -28,7 +28,7 @@ describe('Real analysis API pipeline', () => {
         true,
       );
       expect(result.decisionFactors).toHaveLength(6);
-      const saved = await (await GET()).json();
+      const saved = await (await GET(new Request('http://localhost/api/requests'))).json();
       expect(
         saved.results.find((r: { requestId: string }) => r.requestId === requestId).decision,
       ).toBe(decision);
@@ -40,8 +40,15 @@ describe('Real analysis API pipeline', () => {
     ));
   it('rejects invalid JSON', async () =>
     expect(
-      (await POST(new Request('http://localhost/api/analyze', { method: 'POST', body: '{' })))
-        .status,
+      (
+        await POST(
+          new Request('http://localhost/api/analyze', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', origin: 'http://localhost' },
+            body: '{',
+          }),
+        )
+      ).status,
     ).toBe(400));
   it('returns 404 for unknown request', async () =>
     expect((await POST(request({ requestId: 'REQ-999' }))).status).toBe(404));

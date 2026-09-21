@@ -18,7 +18,7 @@ export async function analyze(requestId: string): Promise<AuthorizationResult | 
   audit(timeline, 'POLICY_RETRIEVED', { present: !!data.policy });
   let provider: ReturnType<typeof getAIProvider> = null;
   try {
-    provider = getAIProvider();
+    provider = isDemo() ? null : getAIProvider();
   } catch {
     data.issues = ['AI provider configuration is invalid.'];
   }
